@@ -14,7 +14,7 @@ namespace Lyra
         public int page;
     }
 
-    public class Artist
+    public class SpotifyArtist
     {
         public string href;
         public string name;
@@ -24,6 +24,6 @@ namespace Lyra
     public class SpotifyAnswer
     {
         public Info info;
-        public IList<Artist> artists;
+        public IList<SpotifyArtist> artists;
     }
 }

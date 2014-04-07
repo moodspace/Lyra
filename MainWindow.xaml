@@ -4,10 +4,10 @@
         xmlns:metro="http://schemas.codeplex.com/elysium"
         xmlns:params="http://schemas.codeplex.com/elysium/params"
         params:Design.Theme="Light"
-        Title="Lyra" Height="344.313" Width="630.97" Loaded="Window_Loaded" Closing="Window_Closing"
+        Title="Lyra" Height="345" Width="630" Loaded="Window_Loaded" Closing="Window_Closing"
         Foreground="White"
         params:Manager.AccentBrush="{x:Static metro:AccentBrushes.Blue}"
-        params:Manager.ContrastBrush="White" params:Manager.Theme="Light" metro:Window.IsMainWindow="False">
+        params:Manager.ContrastBrush="White" params:Manager.Theme="Light" metro:Window.IsMainWindow="False" MinHeight="345" MinWidth="600" MaxWidth="1280" MaxHeight="720">
     <Window.Resources>
         <Color x:Key="blue-button-border">#FF2A8BCC</Color>
         <Color x:Key="blue-button">#FF3498DB</Color>
@@ -24,14 +24,15 @@
         </LinearGradientBrush>
     </metro:Window.Background>
     <Grid>
-        <Button x:Name="MuteButton" Content="Mute" VerticalAlignment="Top" Margin="0,10,105,0" Height="28" HorizontalAlignment="Right" Width="95" FontWeight="SemiBold" Click="MuteButton_Click_1" FontSize="12"/>
+        <Button x:Name="MuteButton" Content="Mute" VerticalAlignment="Top" Margin="0,10,105,0" Height="28" HorizontalAlignment="Right" Width="95" FontWeight="SemiBold" Click="MuteButton_Click" FontSize="12"/>
         <Button x:Name="BlockButton" Content="Block" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" HorizontalAlignment="Right" Width="90" FontWeight="SemiBold" Click="BlockButton_Click" FontSize="12"/>
         <Button x:Name="EditButton" Content="Edit Blocklist" VerticalAlignment="Top" Margin="0,66,10,0" Height="28" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="EditButton_Click" FontSize="12"/>
-        <Label x:Name="SongLabel" Content="Song" VerticalAlignment="Top" Margin="10,10,205,0" HorizontalContentAlignment="Center" Height="56" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
-        <Label x:Name="ArtistLabel" Content="Artist" VerticalAlignment="Top" Margin="10,66,205,0" HorizontalContentAlignment="Center" Height="28" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
-        <TextBlock x:Name="InfoLabel" Text="Info" Margin="10,0,205,10" TextWrapping="WrapWithOverflow" VerticalAlignment="Bottom" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
+        <Label x:Name="SongLabel" Content="■■■■■■■" VerticalAlignment="Top" Margin="10,10,205,0" HorizontalContentAlignment="Center" Height="56" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated"/>
+        <Label x:Name="ArtistLabel" Content="■■■" VerticalAlignment="Top" Margin="10,60,205,0" HorizontalContentAlignment="Center" Height="39" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated"/>
+        <TextBlock x:Name="InfoLabel" Margin="10,0,205,10" TextWrapping="Wrap" VerticalAlignment="Bottom" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextAlignment="Justify" Padding="5" Height="193" TextTrimming="WordEllipsis" Text="■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■"/>
         <ListBox x:Name="BlockListBox" Margin="0,99,10,43" HorizontalAlignment="Right" Width="190" Opacity="0"/>
-        <Button x:Name="RemoveButton" Content="Remove" Margin="0,0,10,10" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="RemoveButton_Click" IsEnabled="False" Height="28" VerticalAlignment="Bottom"/>
+        <Button x:Name="RemoveButton" Content="Remove" Margin="0,0,10,10" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="RemoveButton_Click" IsEnabled="False" Height="28" VerticalAlignment="Bottom" Opacity="0"/>
         <CheckBox x:Name="AutoAddCheckbox" Content="Let Lyra decide" VerticalAlignment="Top" Margin="0,43,10,0" FontWeight="SemiBold" Foreground="White" Checked="AutoAddCheckbox_Checked" HorizontalAlignment="Right" Width="190" FontSize="12"/>
+        <TextBox x:Name="InfoTextbox" TextWrapping="Wrap" Text="Edit and save" Margin="10,110,205,10" TextAlignment="Justify" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" Opacity="0" MouseDoubleClick="InfoTextbox_MouseDoubleClick" KeyDown="InfoTextbox_KeyDown"/>
     </Grid>
-    </metro:Window>
+</metro:Window>

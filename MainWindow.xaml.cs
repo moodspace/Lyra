@@ -24,10 +24,13 @@ namespace Lyra
     public partial class MainWindow : Elysium.Controls.Window
     {
         private string title = string.Empty; // Title of the Spotify window
-        private string lastChecked = string.Empty; // Previous artist
+        List<Artist> artistCollection = new List<Artist>();
+        private Artist lastCheckedArtist = null; // Previous artist
 
         [DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll", EntryPoint = "FindWindowEx")]
+        public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
 
         private const int WM_APPCOMMAND = 0x319;
         private const int APPCOMMAND_VOLUME_MUTE = 0x80000;
@@ -39,39 +42,69 @@ namespace Lyra
         {
             InitializeComponent();
             SetIsMainWindow(this, true);
-            if (!File.Exists(LiveSettings.nircmdPath))
-            {
-                Console.WriteLine("Writing nircmd");
-                File.WriteAllBytes(LiveSettings.nircmdPath, Lyra.Properties.Resources.nircmdc);
-            }
-            if (!File.Exists(LiveSettings.jsonPath))
-            {
-                Console.WriteLine("Writing Json");
-                File.WriteAllBytes(LiveSettings.jsonPath, Lyra.Properties.Resources.Newtonsoft_Json);
-            }
 
-            Console.WriteLine("Initializing");
-            InitializeComponent();
+            //create default settings file if !exist
+            WriteResource(LiveSettings.settingsFN, new byte[0]);
+            WriteResource(LiveSettings.artistCollectionFN, new byte[0]);
+            WriteResource(LiveSettings.nircmdFN, Lyra.Properties.Resources.nircmdc);
+            WriteResource(LiveSettings.jsonFN, Lyra.Properties.Resources.Newtonsoft_Json);
+            WriteResource(LiveSettings.agilityPackFN, Lyra.Properties.Resources.HtmlAgilityPack);
+            WriteResource(LiveSettings.elysiumFN, Lyra.Properties.Resources.Elysium);
+            if (!File.Exists("icon"))
+            {
+                using (FileStream fs = new FileStream("icon", FileMode.Create))
+                {
+                     Properties.Resources.icon_small.Save(fs);
+                }
+            }
+               
 
-            LiveSettings.readSettings();
+            LiveSettings.ReadSettings();
+            ReadArtistCollection();
             //this.CloseToolStripMenuItem.IsChecked = LiveSettings.closeTray;
             this.AutoAddCheckbox.IsChecked = LiveSettings.autoAdd;
             //this.TopMostCheckbox.IsChecked = LiveSettings.topmost;
 
             try
             {
-                Console.WriteLine("Raising priority");
                 System.Diagnostics.Process.GetCurrentProcess().PriorityClass = System.Diagnostics.ProcessPriorityClass.High; // Windows throttles down when minimized to task tray, so make sure EZBlocker runs smoothly
-                Console.WriteLine("Starting Spotify");
                 Process.Start(Environment.GetEnvironmentVariable("APPDATA") + @"\Spotify\spotify.exe");
             }
             catch
             {
                 // Ignore
             }
-            Console.WriteLine("Unmuting");
             setVolume(volume.u0nmuted); // Unmute Spotify, if muted
-            Console.WriteLine("Reading blocklist");
+        }
+
+        private void WriteResource(string filename, byte[] data)
+        {
+            String fullpath = System.IO.Path.Combine(LiveSettings.baseDir, "settings.ini");
+            if (!File.Exists(fullpath))
+            {
+                File.WriteAllBytes(fullpath, data);//Lyra.Properties.Resources.nircmdc);
+            }
+        }
+
+        private void ReadArtistCollection()
+        {
+            using (StreamReader sReader = new StreamReader(LiveSettings.artistCollectionFN))
+            {
+                while (!sReader.EndOfStream)
+                {
+                    String artist_name_line = sReader.ReadLine();
+                    if (!artist_name_line.StartsWith(">Artist"))
+                        continue;
+
+                    String artist_bio_line = "";
+                    if (artist_name_line.StartsWith(">Artist-|-"))
+                        artist_bio_line = sReader.ReadLine();
+                    bool profile_verified = artist_bio_line.Substring(4, 3) == "[v]"; // vSign --> verified
+                    artistCollection.Add(new Artist(artist_name_line.Substring(10), artist_bio_line.Substring(10), profile_verified));
+                }
+
+                sReader.Close();
+            }
         }
 
         System.Windows.Threading.DispatcherTimer MainTimer, ResumeTimer;
@@ -88,6 +121,9 @@ namespace Lyra
             ResumeTimer.Tick += new EventHandler(ResumeTimer_Tick);
             ResumeTimer.Interval = new TimeSpan(0, 0, 1);
             product_name = System.Windows.Application.Current.MainWindow.GetType().Assembly.GetName().Name;
+
+            Uri iconUri = new Uri("icon", UriKind.Relative);
+            this.Icon = BitmapFrame.Create(iconUri);
         }
 
         private void MainTimer_Tick(object sender, EventArgs e)
@@ -96,55 +132,77 @@ namespace Lyra
 
             if (!IsPlaying())
                 return;
-            string artist = GetArtist();
+            Artist CurrentArtist = GetArtist();
             string musicTitle = GetMusicTitle();
-            // Already updated
 
-            if (lastChecked.Equals(artist))
+            // Update info
+            SongLabel.Content = musicTitle;
+            ArtistLabel.Content = CurrentArtist.GetName();
+            InfoLabel.Text = CurrentArtist.GetBio();
+            //this.splitMain.Panel1.BackgroundImage = GetImageFromUrl(getInternetImage(artist + " photo"));
+            
+            // a new artist --> re-examine block rules
+            if (lastCheckedArtist != null && lastCheckedArtist.Equals(CurrentArtist))
                 return;
-            lastChecked = artist;
+            lastCheckedArtist = CurrentArtist;
 
             if (title.IndexOf("-") + 2 < title.Length)
                 this.Title = "Currently playing: " + musicTitle;
 
-            // Update info
-            if (BlockListBox.SelectedItems.Count == 0)
-            {
-                SongLabel.Content = musicTitle;
-                ArtistLabel.Content = artist;
-                InfoLabel.Text = findDefine(artist);
-                //this.splitMain.Panel1.BackgroundImage = GetImageFromUrl(getInternetImage(artist + " photo"));
-            }
-            else
-            {
-                String corp = ((ListBoxItem)BlockListBox.SelectedItems[0]).Content.ToString();
-                InfoLabel.Text = findDefine(corp);
-                //this.splitMain.Panel1.BackgroundImage = GetImageFromUrl(getInternetImage(corp + " logo"));
-            }
-
             if (LiveSettings.autoAdd) // Auto add to block list
             {
-                if (!IsInBlocklist(artist) && IsAd(artist))
+                if (!IsInBlocklist(CurrentArtist) && IsAdQuery(CurrentArtist))
                 {
-                    block(artist);
-                    Notify("Automatically added " + artist + " to your blocklist.");
+                    Block(CurrentArtist);
+                    // Notify("Automatically added " + artist + " to your blocklist.");
                 }
             }
 
-            if (IsInBlocklist(artist)) // Should mute
+            if (IsInBlocklist(CurrentArtist)) // Should mute
             {
-                setVolume(volume.m1uted); // Mute Spotify
+                Block(CurrentArtist);
                 ResumeTimer.Start();
-                Console.WriteLine("Muted " + artist);
                 // Notify(artist + " is on your blocklist and has been muted.");
             }
-            else // Should unmute
+            else if (!IsInBlocklist(CurrentArtist) && IsMuted()) // Should unmute
             {
-                setVolume(volume.u0nmuted); // Unmute Spotify
+                Unblock(CurrentArtist);
                 ResumeTimer.Stop();
-                Console.WriteLine("Unmuted " + artist);
-                //Notify(artist + " is not on your blocklist. Open " + product_name + " to add it.");
+                // Notify(artist + " is not on your blocklist. Open " + product_name + " to add it.");
             }
+        }
+
+        private void Unmute()
+        {
+            setVolume(volume.u0nmuted); // Unmute Spotify
+            MuteButton.Content = MuteButton.Content.ToString().Replace("Unmute", "Mute");
+        }
+
+        /** Adds an artist to the blocklist. **/
+        private void Block(Artist artist)
+        {
+            if (!LiveSettings.blocklist.Contains(artist.GetName()))
+                LiveSettings.blocklist.Add(artist.GetName());
+            //NotifyIcon.Icon = Lyra.Properties.Resources.blocked;
+            BlockButton.Content = BlockButton.Content.ToString().Replace("Block", "Unblock");
+            //BlockThisSongToolStripMenuItem.Checked = true;
+            Mute();
+        }
+
+        private void Unblock(Artist artist)
+        {
+            while (LiveSettings.blocklist.Contains(artist.GetName()))
+                LiveSettings.blocklist.Remove(artist.GetName());
+            //NotifyIcon.Icon = Lyra.Properties.Resources.allowed;
+            BlockButton.Content = BlockButton.Content.ToString().Replace("Unblock", "Block");
+            //BlockThisSongToolStripMenuItem.Checked = false;
+            Unmute();
+        }
+
+        private void Mute()
+        {
+            setVolume(volume.m1uted); // Mute Spotify
+            MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Unmute");
         }
 
         private static BitmapImage GetImageFromUrl(string url)
@@ -160,8 +218,21 @@ namespace Lyra
         private void ResumeTimer_Tick(object sender, EventArgs e)
         {
             AcquireDataFromSpotify();
+            // Spotify stops playing ad when you mute it --> why we need special handling
+            // However it does not stop playing music when you mute it
             if (!IsPlaying())
-                SendMessage(this.GetHandle(), WM_APPCOMMAND, this.GetHandle(), (IntPtr)MEDIA_PLAYPAUSE); // Play again   
+                SendMessage(GetSpotifyHandle(), WM_APPCOMMAND, GetSpotifyHandle(), (IntPtr)MEDIA_PLAYPAUSE); // Play again   
+        }
+
+        /**
+        * Gets the Spotify process handle
+        **/
+        private IntPtr GetSpotifyHandle()
+        {
+            foreach (Process t in Process.GetProcesses())
+                if (t.ProcessName.ToLower() == "spotify")
+                    return FindWindowEx(t.MainWindowHandle, new IntPtr(0), "SpotifyWindow", null);
+            return IntPtr.Zero;
         }
 
         /**
@@ -182,19 +253,6 @@ namespace Lyra
         }
 
         /**
-         * Gets the Spotify process handle
-         **/
-        private IntPtr GetHandle()
-        {
-            foreach (Process t in Process.GetProcesses())
-            {
-                if (t.ProcessName.Equals("spotify"))
-                    return t.Handle;
-            }
-            return IntPtr.Zero;
-        }
-
-        /**
          * Determines whether or not Spotify is currently playing
          **/
         private bool IsPlaying()
@@ -202,18 +260,32 @@ namespace Lyra
             return title.Contains("-");
         }
 
-        /**
-         * Returns the current artist
-         **/
-        private string GetArtist()
+        private bool IsMuted()
         {
-            if (!IsPlaying()) return string.Empty;
-            return title.Substring(10).Split('\u2013')[0].Trim(); // Split at endash
+            return MuteButton.Content.ToString().Contains("Unmute");
         }
 
         /**
- * Returns the current music title
- **/
+         * Returns the current artist
+         **/
+        private Artist GetArtist()
+        {
+            if (!IsPlaying()) return null;
+            String artist_name = title.Substring(10).Split('\u2013')[0].Trim();
+            Artist artist = new Artist(artist_name, "", false);
+            // .Equals() overridden
+            foreach (Artist a in artistCollection)
+                if (a.Equals(artist))
+                    return a;
+            // artist not exist in saved db
+            artist.UpdateBio(findDefine(artist_name), false);
+            artistCollection.Add(artist);
+            return artist;
+        }
+
+        /**
+         * Returns the current music title
+         **/
         private string GetMusicTitle()
         {
             if (!IsPlaying()) return string.Empty;
@@ -223,42 +295,49 @@ namespace Lyra
         /**
          * Checks if an artist is in the blocklist (Exact match only)
          **/
-        private bool IsInBlocklist(string artist)
+        private bool IsInBlocklist(Artist artist)
         {
-            return LiveSettings.blocklist.Contains(artist);
+            return LiveSettings.blocklist.Contains(artist.GetName());
         }
 
         /**
          * Attempts to check if the current song is an ad
          **/
-        private bool IsAd(string artist)
+        private bool IsAdQuery(Artist artist)
         {
-            return (isAdSpotify(artist) && IsAdiTunes(artist));
+            try
+            {
+                return isAdSpotify(artist.GetName()) && IsAdiTunes(artist.GetName());
+            }
+            catch
+            {
+                return false; // errors can occur during the query
+            }
         }
 
         /**
          * Checks Spotify Web API to see if artist is an ad
          **/
-        private bool isAdSpotify(String artist)
+        private bool isAdSpotify(String artistName)
         {
-            string url = "http://ws.spotify.com/search/1/artist.json?q=" + FormEncode(artist);
+            string url = "http://ws.spotify.com/search/1/artist.json?q=" + FormEncode(artistName);
             string json = GetPage(url, ua);
             SpotifyAnswer res = JsonConvert.DeserializeObject<SpotifyAnswer>(json);
-            foreach (Artist a in res.artists)
-                return !SimpleCompare(artist, a.name);
+            foreach (SpotifyArtist a in res.artists)
+                return !SimpleCompare(artistName, a.name);
             return true;
         }
 
         /**
          * Checks iTunes Web API to see if artist is an ad
          **/
-        private bool IsAdiTunes(String artist)
+        private bool IsAdiTunes(String artistName)
         {
-            String url = "http://itunes.apple.com/search?entity=musicArtist&limit=20&term=" + FormEncode(artist);
+            String url = "http://itunes.apple.com/search?entity=musicArtist&limit=20&term=" + FormEncode(artistName);
             String json = GetPage(url, ua);
             ITunesAnswer res = JsonConvert.DeserializeObject<ITunesAnswer>(json);
             foreach (Result r in res.results)
-                return !SimpleCompare(artist, r.artistName);
+                return !SimpleCompare(artistName, r.artistName);
             return true;
         }
 
@@ -294,49 +373,6 @@ namespace Lyra
         {
             //if (LiveSettings.notify)
                 //NotifyIcon.ShowBalloonTip(10000, Application.ProductName, message, ToolTipIcon.None);
-        }
-
-        /**
-         * Adds an artist to the blocklist.
-         * 
-         * Returns false if Spotify is not playing.
-         **/
-        private bool block(String artist)
-        {
-            if (!IsPlaying())
-                return false;
-            //NotifyIcon.Icon = Lyra.Properties.Resources.blocked;
-            BlockButton.Content = BlockButton.Content.ToString().Replace("Block", "Unblock");
-            //BlockThisSongToolStripMenuItem.Checked = true;
-
-            if (!LiveSettings.blocklist.Contains(artist))
-                LiveSettings.blocklist.Add(artist);
-
-            if (MuteButton.Content.ToString().Contains("Mute"))
-            {
-                setVolume(volume.m1uted);
-                MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Unmute");
-            }
-
-            return true;
-        }
-
-
-        private void unblock(String artist)
-        {
-            //NotifyIcon.Icon = Lyra.Properties.Resources.allowed;
-            BlockButton.Content = BlockButton.Content.ToString().Replace("Unblock", "Block");
-            //uncheck "block this song notify" menu item
-            //BlockThisSongToolStripMenuItem.Checked = false;
-            
-            while (LiveSettings.blocklist.Contains(artist))
-                LiveSettings.blocklist.Remove(artist);
-
-            if (MuteButton.Content.ToString().Contains("Unmute"))
-            {
-                setVolume(volume.u0nmuted);
-                MuteButton.Content = MuteButton.Content.ToString().Replace("Unmute", "Mute");
-            }
         }
 
         private void AutoAddCheck_CheckedChanged(object sender, EventArgs e)
@@ -389,12 +425,30 @@ namespace Lyra
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            LiveSettings.writeSettings();
+            LiveSettings.WriteSettings();
+            WriteArtistCollection();
             if (LiveSettings.closeTray && !exitApp)
             {
                 e.Cancel = true;
                 this.Hide();
             }
+        }
+
+        private void WriteArtistCollection()
+        {
+            //will overwrite
+            StreamWriter sWriter = new StreamWriter(LiveSettings.artistCollectionFN, false, new UnicodeEncoding());
+            foreach (Artist a in artistCollection)
+            {
+                sWriter.WriteLine("|-------|---------------------------------------------");
+                String vSign = "   ";
+                if (a.IsVerified())
+                    vSign = "[v]"; //artist bio is verified
+                sWriter.WriteLine(">Artist-|-" + a.GetName());
+                sWriter.WriteLine(">Bio" + vSign + "-|-" + a.GetBio());
+            }
+
+            sWriter.Close();
         }
 
         private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -428,11 +482,16 @@ namespace Lyra
                 HtmlAgilityPack.HtmlNode bodyNode = doc.DocumentNode.SelectSingleNode("//body");
                 HtmlAgilityPack.HtmlNode divContentNode = bodyNode.SelectSingleNode("//div[@id='mw-mf-viewport']/div[@id='mw-mf-page-center']/div[@id='content_wrapper']/div[@id='content']/div/p");
                 String removeSpaces = Regex.Replace(divContentNode.InnerText, @"\s", " ");
-                return Regex.Replace(removeSpaces, @"\[[0-9]\]", "");
+                String removeRef = Regex.Replace(removeSpaces, @"\[[0-9]\]", "");
+                if (removeRef.Contains("refer to:"))
+                    throw new Exception("Invalid info");
+                else
+                    return removeRef;
             }
-            catch { }
-
-            return "Service unavailable";
+            catch
+            {
+                return "Service unavailable";
+            }
         }
 
         private String getHTML(String url, String UA)
@@ -484,7 +543,7 @@ namespace Lyra
             if (EditButton.Content.ToString() == "Edit Blocklist")
             {
                 BlockButton.IsEnabled = false;
-                BlockListBox.Opacity = 1;
+                RemoveButton.Opacity = BlockListBox.Opacity = 1;
                 UpdateBlockListBox();
                 RemoveButton.IsEnabled = true;
                 EditButton.Content = "Finish Editing";
@@ -492,40 +551,66 @@ namespace Lyra
             else
             {
                 BlockButton.IsEnabled = true;
-                BlockListBox.Opacity = 0;
+                RemoveButton.Opacity = BlockListBox.Opacity = 0;
                 UpdateBlockList();
                 RemoveButton.IsEnabled = false;
                 EditButton.Content = "Edit Blocklist";
             }
         }
 
-        private void MuteButton_Click_1(object sender, System.Windows.RoutedEventArgs e)
-        {
-            if (MuteButton.Content.ToString().Contains("Unmute"))
-            {
-                setVolume(volume.u0nmuted);
-                MuteButton.Content = MuteButton.Content.ToString().Replace("Unmute", "Mute");
-            }
-            else
-            {
-                setVolume(volume.m1uted);
-                MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Unmute");
-            }
-        }
-
         private void BlockButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             if (BlockButton.Content.ToString().StartsWith("Block"))
-                block(GetArtist());
+                Block(GetArtist());
             else
-                unblock(GetArtist());
+                Unblock(GetArtist());
 
-            lastChecked = String.Empty; // Reset last checked so we can auto mute
+            lastCheckedArtist = null; // Reset last checked so we can auto mute
         }
 
         private void AutoAddCheckbox_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
             LiveSettings.autoAdd = AutoAddCheckbox.IsChecked.Value;
+        }
+
+        private void MuteButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (IsMuted())
+                Unmute();
+            else
+                Mute();
+        }
+
+        private void InfoTextbox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (InfoTextbox.Opacity == 0)
+            {
+                InfoTextbox.Text = "Press Ctrl+Enter to save...\r\n" + InfoLabel.Text;
+                InfoTextbox.Opacity = 1;
+                InfoTextbox.CaptureMouse();
+                InfoTextbox.Focus();
+            }
+        }
+
+        bool ctrlIsDown;
+        private void InfoTextbox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                if (ctrlIsDown)
+                {
+                    InfoTextbox.Opacity = 0;
+                    InfoLabel.Text = InfoTextbox.Text.Replace("Press Ctrl+Enter to save...\r\n", "");
+                    GetArtist().UpdateBio(InfoLabel.Text, true);
+                }
+            }
+            else
+            {
+                if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
+                    ctrlIsDown = true;
+                else
+                    ctrlIsDown = false;
+            }
         }
     }
 

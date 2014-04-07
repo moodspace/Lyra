@@ -19,21 +19,20 @@ namespace Lyra
         static internal bool autoAdd = true;
         static internal bool topmost = true;
         //paths
-        static String baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
-        static internal String settingsPath = System.IO.Path.Combine(baseDir, "settings.ini");
-        static internal String blocklistPath = System.IO.Path.Combine(baseDir, "blocklist.txt");
-        static internal String nircmdPath = System.IO.Path.Combine(baseDir, "nircmdc.exe");
-        static internal String jsonPath = System.IO.Path.Combine(baseDir, "Newtonsoft.Json.dll");
+        static internal String baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
+        static internal String settingsFN = "settings.ini";
+        static internal String artistCollectionFN = "artists.db";
+        static internal String nircmdFN = "nircmdc.exe";
+        static internal String jsonFN = "Newtonsoft.Json.dll";
+        static internal String agilityPackFN = "HtmlAgilityPack.dll";
+        static internal String elysiumFN = "Elysium.dll";
+
         //block-list
         static internal List<String> blocklist = new List<String>();
 
-        internal static void readSettings()
+        internal static void ReadSettings()
         {
-            //create default settings file if doesn//t exist
-            if (!System.IO.File.Exists(settingsPath))
-                writeSettings();
-
-            using (StreamReader sReader = new StreamReader(settingsPath))
+            using (StreamReader sReader = new StreamReader(settingsFN))
             {
                 while (!sReader.EndOfStream)
                 {
@@ -58,10 +57,10 @@ namespace Lyra
             }
         }
 
-        internal static void writeSettings()
+        internal static void WriteSettings()
         {
             //will overwrite
-            StreamWriter sWriter = new StreamWriter(settingsPath, false, new UnicodeEncoding());
+            StreamWriter sWriter = new StreamWriter(settingsFN, false, new UnicodeEncoding());
             sWriter.WriteLine(outputBoolSetting("show bubble", notify));
             sWriter.WriteLine(outputBoolSetting("close to tray", closeTray));
             sWriter.WriteLine(outputBoolSetting("autoblock", autoAdd));
@@ -73,7 +72,7 @@ namespace Lyra
             sWriter.Close();
         }
 
-        //Precondition: true; and false are presented in lowercase
+        //Precondition: true and false are presented in lowercase
         private static bool parseBool(String str)
         {
             return (str.EndsWith("true"));

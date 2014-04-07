@@ -83,6 +83,16 @@ namespace Lyra.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] Elysium {
+            get {
+                object obj = ResourceManager.GetObject("Elysium", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] HtmlAgilityPack {
             get {
                 object obj = ResourceManager.GetObject("HtmlAgilityPack", resourceCulture);
