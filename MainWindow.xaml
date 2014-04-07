@@ -1,0 +1,37 @@
+﻿<metro:Window x:Class="Lyra.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:metro="http://schemas.codeplex.com/elysium"
+        xmlns:params="http://schemas.codeplex.com/elysium/params"
+        params:Design.Theme="Light"
+        Title="Lyra" Height="344.313" Width="630.97" Loaded="Window_Loaded" Closing="Window_Closing"
+        Foreground="White"
+        params:Manager.AccentBrush="{x:Static metro:AccentBrushes.Blue}"
+        params:Manager.ContrastBrush="White" params:Manager.Theme="Light" metro:Window.IsMainWindow="False">
+    <Window.Resources>
+        <Color x:Key="blue-button-border">#FF2A8BCC</Color>
+        <Color x:Key="blue-button">#FF3498DB</Color>
+        <LinearGradientBrush x:Key="blue-button-brush" EndPoint="0.5,1" StartPoint="0.5,0">
+            <GradientStop Color="{DynamicResource blue-button}" Offset="0.85"/>
+            <GradientStop Color="{DynamicResource blue-button-border}" Offset="0.85"/>
+        </LinearGradientBrush>
+        <DropShadowEffect x:Key="dropshadow_whitetext" Color="#FF505050" Direction="0" ShadowDepth="0" BlurRadius="10" Opacity="0.8"/>
+    </Window.Resources>
+    <metro:Window.Background>
+        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+            <GradientStop Color="#FF2A8BCC" Offset="0.137"/>
+            <GradientStop Color="#FF3498DB" Offset="1"/>
+        </LinearGradientBrush>
+    </metro:Window.Background>
+    <Grid>
+        <Button x:Name="MuteButton" Content="Mute" VerticalAlignment="Top" Margin="0,10,105,0" Height="28" HorizontalAlignment="Right" Width="95" FontWeight="SemiBold" Click="MuteButton_Click_1" FontSize="12"/>
+        <Button x:Name="BlockButton" Content="Block" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" HorizontalAlignment="Right" Width="90" FontWeight="SemiBold" Click="BlockButton_Click" FontSize="12"/>
+        <Button x:Name="EditButton" Content="Edit Blocklist" VerticalAlignment="Top" Margin="0,66,10,0" Height="28" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="EditButton_Click" FontSize="12"/>
+        <Label x:Name="SongLabel" Content="Song" VerticalAlignment="Top" Margin="10,10,205,0" HorizontalContentAlignment="Center" Height="56" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
+        <Label x:Name="ArtistLabel" Content="Artist" VerticalAlignment="Top" Margin="10,66,205,0" HorizontalContentAlignment="Center" Height="28" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
+        <TextBlock x:Name="InfoLabel" Text="Info" Margin="10,0,205,10" TextWrapping="WrapWithOverflow" VerticalAlignment="Bottom" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}"/>
+        <ListBox x:Name="BlockListBox" Margin="0,99,10,43" HorizontalAlignment="Right" Width="190" Opacity="0"/>
+        <Button x:Name="RemoveButton" Content="Remove" Margin="0,0,10,10" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="RemoveButton_Click" IsEnabled="False" Height="28" VerticalAlignment="Bottom"/>
+        <CheckBox x:Name="AutoAddCheckbox" Content="Let Lyra decide" VerticalAlignment="Top" Margin="0,43,10,0" FontWeight="SemiBold" Foreground="White" Checked="AutoAddCheckbox_Checked" HorizontalAlignment="Right" Width="190" FontSize="12"/>
+    </Grid>
+    </metro:Window>
