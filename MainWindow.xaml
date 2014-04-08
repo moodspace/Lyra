@@ -1,13 +1,14 @@
-﻿<metro:Window x:Class="Lyra.MainWindow"
+﻿<metro:Window x:Name="Main" x:Class="Lyra.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:metro="http://schemas.codeplex.com/elysium"
         xmlns:params="http://schemas.codeplex.com/elysium/params"
+        xmlns:properties="clr-namespace:Lyra.Properties"
         params:Design.Theme="Light"
-        Title="Lyra" Height="345" Width="630" Loaded="Window_Loaded" Closing="Window_Closing"
+        Title="Lyra" Height="345" Width="480" Loaded="Main_Loaded" Closing="Window_Closing"
         Foreground="White"
         params:Manager.AccentBrush="{x:Static metro:AccentBrushes.Blue}"
-        params:Manager.ContrastBrush="White" params:Manager.Theme="Light" metro:Window.IsMainWindow="False" MinHeight="345" MinWidth="600" MaxWidth="1280" MaxHeight="720">
+        params:Manager.ContrastBrush="White" params:Manager.Theme="Light" metro:Window.IsMainWindow="False" MinHeight="345" MinWidth="480" MaxWidth="1280" MaxHeight="720" HorizontalContentAlignment="Center">
     <Window.Resources>
         <Color x:Key="blue-button-border">#FF2A8BCC</Color>
         <Color x:Key="blue-button">#FF3498DB</Color>
@@ -16,6 +17,10 @@
             <GradientStop Color="{DynamicResource blue-button-border}" Offset="0.85"/>
         </LinearGradientBrush>
         <DropShadowEffect x:Key="dropshadow_whitetext" Color="#FF505050" Direction="0" ShadowDepth="0" BlurRadius="10" Opacity="0.8"/>
+        <LinearGradientBrush x:Key="glass_bg" EndPoint="0.5,1" MappingMode="RelativeToBoundingBox" StartPoint="0.5,0">
+            <GradientStop Color="#33FFFFFF"/>
+            <GradientStop Color="#19FFFFFF" Offset="0.443"/>
+        </LinearGradientBrush>
     </Window.Resources>
     <metro:Window.Background>
         <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
@@ -24,15 +29,25 @@
         </LinearGradientBrush>
     </metro:Window.Background>
     <Grid>
-        <Button x:Name="MuteButton" Content="Mute" VerticalAlignment="Top" Margin="0,10,105,0" Height="28" HorizontalAlignment="Right" Width="95" FontWeight="SemiBold" Click="MuteButton_Click" FontSize="12"/>
-        <Button x:Name="BlockButton" Content="Block" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" HorizontalAlignment="Right" Width="90" FontWeight="SemiBold" Click="BlockButton_Click" FontSize="12"/>
-        <Button x:Name="EditButton" Content="Edit Blocklist" VerticalAlignment="Top" Margin="0,66,10,0" Height="28" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="EditButton_Click" FontSize="12"/>
-        <Label x:Name="SongLabel" Content="■■■■■■■" VerticalAlignment="Top" Margin="10,10,205,0" HorizontalContentAlignment="Center" Height="56" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated"/>
-        <Label x:Name="ArtistLabel" Content="■■■" VerticalAlignment="Top" Margin="10,60,205,0" HorizontalContentAlignment="Center" Height="39" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated"/>
-        <TextBlock x:Name="InfoLabel" Margin="10,0,205,10" TextWrapping="Wrap" VerticalAlignment="Bottom" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextAlignment="Justify" Padding="5" Height="193" TextTrimming="WordEllipsis" Text="■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■"/>
-        <ListBox x:Name="BlockListBox" Margin="0,99,10,43" HorizontalAlignment="Right" Width="190" Opacity="0"/>
-        <Button x:Name="RemoveButton" Content="Remove" Margin="0,0,10,10" HorizontalAlignment="Right" Width="190" FontWeight="SemiBold" Click="RemoveButton_Click" IsEnabled="False" Height="28" VerticalAlignment="Bottom" Opacity="0"/>
-        <CheckBox x:Name="AutoAddCheckbox" Content="Let Lyra decide" VerticalAlignment="Top" Margin="0,43,10,0" FontWeight="SemiBold" Foreground="White" Checked="AutoAddCheckbox_Checked" HorizontalAlignment="Right" Width="190" FontSize="12"/>
-        <TextBox x:Name="InfoTextbox" TextWrapping="Wrap" Text="Edit and save" Margin="10,110,205,10" TextAlignment="Justify" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" Opacity="0" MouseDoubleClick="InfoTextbox_MouseDoubleClick" KeyDown="InfoTextbox_KeyDown"/>
+        <Grid x:Name="GridButtons" Width="195" Margin="142,0,135,0" HorizontalAlignment="Center" VerticalAlignment="Top" Height="48" Background="#FF0E2951" Visibility="Hidden">
+            <Button x:Name="EditButton" Content="Edit Blocklist" VerticalAlignment="Top" Margin="10,10,10,0" Height="28" FontWeight="SemiBold" Click="EditButton_Click" FontSize="12"/>
+            <ListBox x:Name="BlockListBox" Margin="10,48,10,43" Opacity="0" VerticalContentAlignment="Center" Panel.ZIndex="-100"/>
+            <Button x:Name="RemoveButton" Content="Remove" Margin="10,0,10,10" FontWeight="SemiBold" Click="RemoveButton_Click" IsEnabled="False" Height="28" VerticalAlignment="Bottom" Opacity="0"/>
+        </Grid>
+        <Grid x:Name="GridImage">
+            <Image x:Name="artistImageBox" Margin="10"/>
+        </Grid>
+        <Grid x:Name="GridInfos">
+            <Button x:Name="BlockButton" Content="Block" Margin="160,10,160,0" FontWeight="SemiBold" Click="BlockButton_Click" FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" Width="152" Background="#FFC53D2F" VerticalAlignment="Top" Height="28"/>
+            <Label x:Name="SongLabel" Content="■■■■■■■" VerticalAlignment="Top" Margin="10,43,10,0" HorizontalContentAlignment="Center" Height="44" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="SongLabel_MouseMove" MouseLeave="SongLabel_MouseLeave" VerticalContentAlignment="Center"/>
+            <Label x:Name="ArtistLabel" Content="■■■" VerticalAlignment="Top" Margin="10,87,10,0" HorizontalContentAlignment="Center" Height="39" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="ArtistLabel_MouseMove" MouseLeave="ArtistLabel_MouseLeave" VerticalContentAlignment="Center"/>
+            <TextBlock x:Name="InfoLabel" Margin="10,0,10,35" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextAlignment="Justify" Padding="5" Text="■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
+            <Button x:Name="PauseButton" Content="Pause" Margin="0,10,85,0" Width="36" FontWeight="SemiBold" Click="PauseButton_Click" FontSize="12" HorizontalAlignment="Right" Height="28" VerticalAlignment="Top" Opacity="0.65" Background="#FF2F88C5" MouseMove="PauseButton_MouseMove" MouseLeave="PauseButton_MouseLeave"/>
+            <Button x:Name="MuteButton" Content="Mute" Margin="85,10,0,0" FontWeight="SemiBold" Click="MuteButton_Click" FontSize="12" HorizontalAlignment="Left" Width="70" Height="28" VerticalAlignment="Top" Opacity="0.65" Background="#FF2F88C5" MouseMove="MuteButton_MouseMove" MouseLeave="MuteButton_MouseLeave"/>
+            <Button x:Name="NextSongButton" Content="Next" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" Width="19" FontWeight="SemiBold" Click="NextSongButton_Click" FontSize="12" HorizontalAlignment="Right" Opacity="0.65" Background="#FF2F88C5" MouseMove="NextSongButton_MouseMove" MouseLeave="NextSongButton_MouseLeave"/>
+            <Button x:Name="LastSongButton" Content="Previous" VerticalAlignment="Top" Margin="10,10,0,0" Height="28" HorizontalAlignment="Left" Width="29" FontWeight="SemiBold" Click="LastSongButton_Click" FontSize="12" Opacity="0.65" MouseMove="LastSongButton_MouseMove" MouseLeave="LastSongButton_MouseLeave" Background="#FF2F88C5"/>
+            <TextBox x:Name="InfoTextbox" TextWrapping="Wrap" Margin="10,0,10,35" TextAlignment="Justify" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" Opacity="0" MouseDoubleClick="InfoTextbox_MouseDoubleClick" KeyDown="InfoTextbox_KeyDown" KeyUp="InfoTextbox_KeyUp" MouseMove="InfoTextbox_MouseMove" MouseLeave="InfoTextbox_MouseLeave" Background="White" VerticalAlignment="Bottom"/>
+            <CheckBox x:Name="AutoAddCheckbox" Content="Automatically block new ads" Margin="10,0,0,10" FontWeight="SemiBold" Foreground="White" Checked="AutoAddCheckbox_Checked" FontSize="12" Height="16" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="208" Effect="{DynamicResource dropshadow_whitetext}"/>
+        </Grid>
     </Grid>
 </metro:Window>

@@ -40,18 +40,12 @@ namespace Lyra
             else if (obj != null && this != null)
             {
                 if (obj.GetType() != typeof(Artist))
-                {
                     return false;
-                }
                 else
-                {
                     return ((Artist)obj).GetName() == _name;
-                }
             }
             else
-            {
                 return false;
-            }
         }
 
         public override int GetHashCode()

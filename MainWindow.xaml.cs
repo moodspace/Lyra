@@ -34,7 +34,6 @@ namespace Lyra
 
         private const int WM_APPCOMMAND = 0x319;
         private const int APPCOMMAND_VOLUME_MUTE = 0x80000;
-        private const int MEDIA_PLAYPAUSE = 0xE0000;
 
         private const string ua = @"Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36";
 
@@ -51,13 +50,11 @@ namespace Lyra
             WriteResource(LiveSettings.agilityPackFN, Lyra.Properties.Resources.HtmlAgilityPack);
             WriteResource(LiveSettings.elysiumFN, Lyra.Properties.Resources.Elysium);
             if (!File.Exists("icon"))
-            {
                 using (FileStream fs = new FileStream("icon", FileMode.Create))
-                {
                      Properties.Resources.icon_small.Save(fs);
-                }
-            }
-               
+            if (!File.Exists("shade"))
+                using (FileStream fs = new FileStream("shade", FileMode.Create))
+                    Properties.Resources.blur_shade.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
 
             LiveSettings.ReadSettings();
             ReadArtistCollection();
@@ -79,10 +76,10 @@ namespace Lyra
 
         private void WriteResource(string filename, byte[] data)
         {
-            String fullpath = System.IO.Path.Combine(LiveSettings.baseDir, "settings.ini");
+            String fullpath = System.IO.Path.Combine(LiveSettings.baseDir, LiveSettings.settingsFN);
             if (!File.Exists(fullpath))
             {
-                File.WriteAllBytes(fullpath, data);//Lyra.Properties.Resources.nircmdc);
+                File.WriteAllBytes(fullpath, data);
             }
         }
 
@@ -110,7 +107,7 @@ namespace Lyra
         System.Windows.Threading.DispatcherTimer MainTimer, ResumeTimer;
         String product_name;
 
-        private void Window_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        private void Main_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
             MainTimer = new System.Windows.Threading.DispatcherTimer();
             MainTimer.Tick += new EventHandler(MainTimer_Tick);
@@ -124,6 +121,9 @@ namespace Lyra
 
             Uri iconUri = new Uri("icon", UriKind.Relative);
             this.Icon = BitmapFrame.Create(iconUri);
+
+            Uri shadeUri = new Uri("shade", UriKind.Relative);
+            artistImageBox.OpacityMask = new ImageBrush(BitmapFrame.Create(shadeUri));
         }
 
         private void MainTimer_Tick(object sender, EventArgs e)
@@ -135,16 +135,20 @@ namespace Lyra
             Artist CurrentArtist = GetArtist();
             string musicTitle = GetMusicTitle();
 
-            // Update info
+            // Update info (song title only)
             SongLabel.Content = musicTitle;
-            ArtistLabel.Content = CurrentArtist.GetName();
-            InfoLabel.Text = CurrentArtist.GetBio();
-            //this.splitMain.Panel1.BackgroundImage = GetImageFromUrl(getInternetImage(artist + " photo"));
-            
             // a new artist --> re-examine block rules
             if (lastCheckedArtist != null && lastCheckedArtist.Equals(CurrentArtist))
                 return;
             lastCheckedArtist = CurrentArtist;
+
+            // Update other info
+            ArtistLabel.Content = CurrentArtist.GetName();
+            InfoTextbox.Text = InfoLabel.Text = CurrentArtist.GetBio();
+
+            Uri artistImgUri = new Uri(GetInternetImageUrl(CurrentArtist.GetName() + " photo"));
+            artistImageBox.Source = BitmapFrame.Create(artistImgUri);
+            
 
             if (title.IndexOf("-") + 2 < title.Length)
                 this.Title = "Currently playing: " + musicTitle;
@@ -196,7 +200,8 @@ namespace Lyra
             //NotifyIcon.Icon = Lyra.Properties.Resources.allowed;
             BlockButton.Content = BlockButton.Content.ToString().Replace("Unblock", "Block");
             //BlockThisSongToolStripMenuItem.Checked = false;
-            Unmute();
+            if (!enforcingMute)
+                Unmute();
         }
 
         private void Mute()
@@ -205,14 +210,14 @@ namespace Lyra
             MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Unmute");
         }
 
-        private static BitmapImage GetImageFromUrl(string url)
-        {
-            //HttpWebRequest httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
+        //private static BitmapImage GetImageFromUrl(string url)
+        //{
+        //    //HttpWebRequest httpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
 
-            //using (HttpWebResponse httpWebReponse = (HttpWebResponse)httpWebRequest.GetResponse())
-            //using (Stream stream = httpWebReponse.GetResponseStream())
-                return new BitmapImage(new Uri(url));
-        }
+        //    //using (HttpWebResponse httpWebReponse = (HttpWebResponse)httpWebRequest.GetResponse())
+        //    //using (Stream stream = httpWebReponse.GetResponseStream())
+        //        return new BitmapImage(new Uri(url));
+        //}
 
         // Keep playing ad, however in muted mode
         private void ResumeTimer_Tick(object sender, EventArgs e)
@@ -221,9 +226,27 @@ namespace Lyra
             // Spotify stops playing ad when you mute it --> why we need special handling
             // However it does not stop playing music when you mute it
             if (!IsPlaying())
-                SendMessage(GetSpotifyHandle(), WM_APPCOMMAND, GetSpotifyHandle(), (IntPtr)MEDIA_PLAYPAUSE); // Play again   
+                ControlSpotify("playpause"); // Keep playing   
         }
 
+        private void ControlSpotify(String command)
+        {
+            long hex = 0x0;
+            switch (command.ToLower())
+            {
+                case "playpause":
+                    hex = 0xe0000; break;
+                case "previous":
+                    hex = 0xc0000; break;
+                case "next":
+                    hex = 0xb0000; break;
+                case "volup":
+                    hex = 0xa0000; break;
+                case "voldown":
+                    hex = 0x90000; break;
+            }
+            SendMessage(GetSpotifyHandle(), WM_APPCOMMAND, GetSpotifyHandle(), (IntPtr)hex);
+        }
         /**
         * Gets the Spotify process handle
         **/
@@ -257,6 +280,11 @@ namespace Lyra
          **/
         private bool IsPlaying()
         {
+            if (title.Contains("-"))
+                PauseButton.Content = "Pause";
+            else
+                PauseButton.Content = "Paused";
+
             return title.Contains("-");
         }
 
@@ -504,7 +532,7 @@ namespace Lyra
 
         }
 
-        private String getInternetImage(String keyword)
+        private String GetInternetImageUrl(String keyword)
         {
             HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
             try
@@ -560,7 +588,7 @@ namespace Lyra
 
         private void BlockButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            if (BlockButton.Content.ToString().StartsWith("Block"))
+            if (!IsBlocking())
                 Block(GetArtist());
             else
                 Unblock(GetArtist());
@@ -568,17 +596,38 @@ namespace Lyra
             lastCheckedArtist = null; // Reset last checked so we can auto mute
         }
 
+        /**
+         * Returns true if Lyra is blocking a song.
+         **/
+        private bool IsBlocking()
+        {
+            return !BlockButton.Content.ToString().StartsWith("Block");
+        }
+
+        /**
+         * Set automatic blocking accordingly.
+         **/
         private void AutoAddCheckbox_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
             LiveSettings.autoAdd = AutoAddCheckbox.IsChecked.Value;
         }
 
+        /** When enforcing mute, user can only unmute by clicking the mute button again
+         *  Normally, a mute need to be enforced, except for mute triggered by blocking event
+         **/
+        bool enforcingMute = false;
         private void MuteButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
+            // Users cannot unmute when a song is being blocked
+            if (IsBlocking())
+                return; 
+            // When it is not blocked, muting is enforced, not unmuted until manually unmuted
+            enforcingMute = !enforcingMute; 
+            
             if (IsMuted())
                 Unmute();
             else
-                Mute();
+                Mute();                
         }
 
         private void InfoTextbox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -595,23 +644,109 @@ namespace Lyra
         bool ctrlIsDown;
         private void InfoTextbox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Return)
+            if (e.Key == Key.Return && ctrlIsDown)
             {
-                if (ctrlIsDown)
-                {
-                    InfoTextbox.Opacity = 0;
-                    InfoLabel.Text = InfoTextbox.Text.Replace("Press Ctrl+Enter to save...\r\n", "");
-                    GetArtist().UpdateBio(InfoLabel.Text, true);
-                }
+                InfoTextbox.Opacity = 0;
+                InfoLabel.Text = InfoTextbox.Text.Replace("Press Ctrl+Enter to save...\r\n", "");
+                GetArtist().UpdateBio(InfoLabel.Text, true);
             }
             else
-            {
-                if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl)
-                    ctrlIsDown = true;
-                else
-                    ctrlIsDown = false;
-            }
+                ctrlIsDown = e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl;
         }
+
+        private void InfoTextbox_KeyUp(object sender, KeyEventArgs e)
+        {
+            ctrlIsDown = false;
+        }
+
+        private void SongLabel_MouseMove(object sender, MouseEventArgs e)
+        {
+            SongLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+        }
+
+        private void SongLabel_MouseLeave(object sender, MouseEventArgs e)
+        {
+            SongLabel.Background = null;
+        }
+
+        private void ArtistLabel_MouseMove(object sender, MouseEventArgs e)
+        {
+            ArtistLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+        }
+
+        private void ArtistLabel_MouseLeave(object sender, MouseEventArgs e)
+        {
+            ArtistLabel.Background = null;
+        }
+
+        private void InfoTextbox_MouseMove(object sender, MouseEventArgs e)
+        {
+            InfoLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+        }
+
+        private void InfoTextbox_MouseLeave(object sender, MouseEventArgs e)
+        {
+            InfoLabel.Background = null;
+        }
+
+        #region control_button_actions
+        private void LastSongButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ControlSpotify("previous");
+        }
+
+        private void NextSongButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ControlSpotify("next");
+        }
+
+        private void PauseButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        {
+            ControlSpotify("playpause");
+        }
+        #endregion
+
+        #region control_button_effects
+        private void LastSongButton_MouseMove(object sender, MouseEventArgs e)
+        {
+            LastSongButton.Opacity = 1;
+        }
+
+        private void LastSongButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            LastSongButton.Opacity = .65;
+        }
+
+        private void NextSongButton_MouseMove(object sender, MouseEventArgs e)
+        {
+            NextSongButton.Opacity = 1;
+        }
+
+        private void NextSongButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            NextSongButton.Opacity = .65;
+        }
+
+        private void MuteButton_MouseMove(object sender, MouseEventArgs e)
+        {
+            MuteButton.Opacity = 1;
+        }
+
+        private void MuteButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            MuteButton.Opacity = .65;
+        }
+
+        private void PauseButton_MouseMove(object sender, MouseEventArgs e)
+        {
+            PauseButton.Opacity = 1;
+        }
+
+        private void PauseButton_MouseLeave(object sender, MouseEventArgs e)
+        {
+            PauseButton.Opacity = .65;
+        }
+        #endregion
     }
 
 }
