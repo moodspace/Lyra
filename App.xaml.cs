@@ -13,7 +13,7 @@ namespace Lyra
     {
         private void StartupHandler(object sender, System.Windows.StartupEventArgs e)
         {
-            Elysium.Manager.Apply(this, Elysium.Theme.Light, Elysium.AccentBrushes.Blue, Elysium.AccentBrushes.Sky);
+            Elysium.Manager.Apply(this, Elysium.Theme.Dark, Elysium.AccentBrushes.Blue, Elysium.AccentBrushes.Sky);
         }
     }
 }

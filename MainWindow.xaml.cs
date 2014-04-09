@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -40,22 +41,27 @@ namespace Lyra
         public MainWindow()
         {
             InitializeComponent();
-            SetIsMainWindow(this, true);
-
-            //create default settings file if !exist
+            // Write default settings file if !exist
             WriteResource(LiveSettings.settingsFN, new byte[0]);
             WriteResource(LiveSettings.artistCollectionFN, new byte[0]);
             WriteResource(LiveSettings.nircmdFN, Lyra.Properties.Resources.nircmdc);
             WriteResource(LiveSettings.jsonFN, Lyra.Properties.Resources.Newtonsoft_Json);
             WriteResource(LiveSettings.agilityPackFN, Lyra.Properties.Resources.HtmlAgilityPack);
             WriteResource(LiveSettings.elysiumFN, Lyra.Properties.Resources.Elysium);
-            if (!File.Exists("icon"))
-                using (FileStream fs = new FileStream("icon", FileMode.Create))
-                     Properties.Resources.icon_small.Save(fs);
-            if (!File.Exists("shade"))
-                using (FileStream fs = new FileStream("shade", FileMode.Create))
-                    Properties.Resources.blur_shade.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+            try
+            {
+                if (!File.Exists("icon"))
+                    using (FileStream fs = new FileStream("icon", FileMode.Create))
+                        Properties.Resources.icon_small.Save(fs);
+                if (!File.Exists("shade"))
+                    using (FileStream fs = new FileStream("shade", FileMode.Create))
+                        Properties.Resources.blur_shade.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            catch { }
 
+            SetIsMainWindow(this, true);
+
+            // Read settings
             LiveSettings.ReadSettings();
             ReadArtistCollection();
             //this.CloseToolStripMenuItem.IsChecked = LiveSettings.closeTray;
@@ -76,32 +82,38 @@ namespace Lyra
 
         private void WriteResource(string filename, byte[] data)
         {
-            String fullpath = System.IO.Path.Combine(LiveSettings.baseDir, LiveSettings.settingsFN);
-            if (!File.Exists(fullpath))
+            try
             {
-                File.WriteAllBytes(fullpath, data);
+                String fullpath = System.IO.Path.Combine(LiveSettings.baseDir, filename);
+                if (!File.Exists(fullpath))
+                    File.WriteAllBytes(fullpath, data);
             }
+            catch { }
         }
 
         private void ReadArtistCollection()
         {
-            using (StreamReader sReader = new StreamReader(LiveSettings.artistCollectionFN))
+            try
             {
-                while (!sReader.EndOfStream)
+                using (StreamReader sReader = new StreamReader(LiveSettings.artistCollectionFN))
                 {
-                    String artist_name_line = sReader.ReadLine();
-                    if (!artist_name_line.StartsWith(">Artist"))
-                        continue;
+                    while (!sReader.EndOfStream)
+                    {
+                        String artist_name_line = sReader.ReadLine();
+                        if (!artist_name_line.StartsWith(">Artist"))
+                            continue;
 
-                    String artist_bio_line = "";
-                    if (artist_name_line.StartsWith(">Artist-|-"))
-                        artist_bio_line = sReader.ReadLine();
-                    bool profile_verified = artist_bio_line.Substring(4, 3) == "[v]"; // vSign --> verified
-                    artistCollection.Add(new Artist(artist_name_line.Substring(10), artist_bio_line.Substring(10), profile_verified));
+                        String artist_bio_line = "";
+                        if (artist_name_line.StartsWith(">Artist-|-"))
+                            artist_bio_line = sReader.ReadLine();
+                        bool profile_verified = artist_bio_line.Substring(4, 3) == "[v]"; // vSign --> verified
+                        artistCollection.Add(new Artist(artist_name_line.Substring(10), artist_bio_line.Substring(10), profile_verified));
+                    }
+
+                    sReader.Close();
                 }
-
-                sReader.Close();
             }
+            catch { }
         }
 
         System.Windows.Threading.DispatcherTimer MainTimer, ResumeTimer;
@@ -146,12 +158,18 @@ namespace Lyra
             ArtistLabel.Content = CurrentArtist.GetName();
             InfoTextbox.Text = InfoLabel.Text = CurrentArtist.GetBio();
 
-            Uri artistImgUri = new Uri(GetInternetImageUrl(CurrentArtist.GetName() + " photo"));
-            artistImageBox.Source = BitmapFrame.Create(artistImgUri);
-            
+            try
+            {
+                Uri artistImgUri = new Uri(GetInternetImageUrl(CurrentArtist.GetName() + " photo"));
+                artistImageBox.Source = BitmapFrame.Create(artistImgUri);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
 
             if (title.IndexOf("-") + 2 < title.Length)
-                this.Title = "Currently playing: " + musicTitle;
+                this.Title = "Now playing: " + musicTitle;
 
             if (LiveSettings.autoAdd) // Auto add to block list
             {
@@ -179,7 +197,7 @@ namespace Lyra
         private void Unmute()
         {
             setVolume(volume.u0nmuted); // Unmute Spotify
-            MuteButton.Content = MuteButton.Content.ToString().Replace("Unmute", "Mute");
+            MuteButton.Content = "Mute";
         }
 
         /** Adds an artist to the blocklist. **/
@@ -207,7 +225,7 @@ namespace Lyra
         private void Mute()
         {
             setVolume(volume.m1uted); // Mute Spotify
-            MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Unmute");
+            MuteButton.Content = MuteButton.Content.ToString().Replace("Mute", "Muted");
         }
 
         //private static BitmapImage GetImageFromUrl(string url)
@@ -290,7 +308,7 @@ namespace Lyra
 
         private bool IsMuted()
         {
-            return MuteButton.Content.ToString().Contains("Unmute");
+            return MuteButton.Content.ToString().Contains("Muted");
         }
 
         /**
@@ -440,13 +458,17 @@ namespace Lyra
 
         private void setVolume(volume Volume)
         {
-            System.Diagnostics.Process process = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/C nircmdc muteappvolume spotify.exe " + Volume.ToString().Substring(1, 1);
-            process.StartInfo = startInfo;
-            process.Start();
+            try
+            {
+                System.Diagnostics.Process process = new System.Diagnostics.Process();
+                System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+                startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                startInfo.FileName = "cmd.exe";
+                startInfo.Arguments = "/C nircmdc muteappvolume spotify.exe " + Volume.ToString().Substring(1, 1);
+                process.StartInfo = startInfo;
+                process.Start();
+            }
+            catch { }
         }
 
         bool exitApp = true;
@@ -487,25 +509,26 @@ namespace Lyra
 
         private String findDefine(String artist)
         {
-            HtmlAgilityPack.HtmlDocument query = new HtmlAgilityPack.HtmlDocument();
-            String UA = @"Mozilla/5.0 (Linux; Android 4.4; Nexus 5 Build/BuildID) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";
-            query.LoadHtml(getHTML("http://en.m.wikipedia.org/w/index.php?search=" + artist, UA));
-            HtmlAgilityPack.HtmlNode queryHeadNode = query.DocumentNode.SelectSingleNode("//head/link[@rel=\"canonical\"]");
-            string pageUrl = queryHeadNode.Attributes["href"].Value;
-            string entryUrl;
-
-            if (pageUrl.Contains("index.php?search="))
-            {
-                HtmlAgilityPack.HtmlNode queryBodyNode = query.DocumentNode.SelectSingleNode("//body");
-                HtmlAgilityPack.HtmlNode firstQueryNode = queryBodyNode.SelectSingleNode("//div[@id='mw-mf-viewport']/div[@id='mw-mf-page-center']/div[@id='content_wrapper']/div[@id='content']/div[@class='searchresults']/ul[@class='mw-search-results']/li[1]/div[@class='mw-search-result-heading']/a[1]");
-                entryUrl = "http://en.m.wikipedia.org" + firstQueryNode.Attributes["href"].Value;
-            }
-            else
-                entryUrl = pageUrl;
-
-            HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
             try
             {
+                HtmlAgilityPack.HtmlDocument query = new HtmlAgilityPack.HtmlDocument();
+                String UA = @"Mozilla/5.0 (Linux; Android 4.4; Nexus 5 Build/BuildID) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";
+                query.LoadHtml(getHTML("http://en.m.wikipedia.org/w/index.php?search=" + artist, UA));
+                HtmlAgilityPack.HtmlNode queryHeadNode = query.DocumentNode.SelectSingleNode("//head/link[@rel=\"canonical\"]");
+                string pageUrl = queryHeadNode.Attributes["href"].Value;
+                string entryUrl;
+
+                if (pageUrl.Contains("index.php?search="))
+                {
+                    HtmlAgilityPack.HtmlNode queryBodyNode = query.DocumentNode.SelectSingleNode("//body");
+                    HtmlAgilityPack.HtmlNode firstQueryNode = queryBodyNode.SelectSingleNode("//div[@id='mw-mf-viewport']/div[@id='mw-mf-page-center']/div[@id='content_wrapper']/div[@id='content']/div[@class='searchresults']/ul[@class='mw-search-results']/li[1]/div[@class='mw-search-result-heading']/a[1]");
+                    entryUrl = "http://en.m.wikipedia.org" + firstQueryNode.Attributes["href"].Value;
+                }
+                else
+                    entryUrl = pageUrl;
+
+                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+
                 doc.LoadHtml(getHTML(entryUrl, UA));
                 HtmlAgilityPack.HtmlNode bodyNode = doc.DocumentNode.SelectSingleNode("//body");
                 HtmlAgilityPack.HtmlNode divContentNode = bodyNode.SelectSingleNode("//div[@id='mw-mf-viewport']/div[@id='mw-mf-page-center']/div[@id='content_wrapper']/div[@id='content']/div/p");
@@ -588,10 +611,14 @@ namespace Lyra
 
         private void BlockButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
+            Artist artist = GetArtist();
+            if (artist == null)
+                return;
+
             if (!IsBlocking())
-                Block(GetArtist());
+                Block(artist);
             else
-                Unblock(GetArtist());
+                Unblock(artist);
 
             lastCheckedArtist = null; // Reset last checked so we can auto mute
         }
@@ -661,7 +688,7 @@ namespace Lyra
 
         private void SongLabel_MouseMove(object sender, MouseEventArgs e)
         {
-            SongLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+            SongLabel.Background = this.Resources["glassy_bg_dark"] as LinearGradientBrush;
         }
 
         private void SongLabel_MouseLeave(object sender, MouseEventArgs e)
@@ -671,7 +698,7 @@ namespace Lyra
 
         private void ArtistLabel_MouseMove(object sender, MouseEventArgs e)
         {
-            ArtistLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+            ArtistLabel.Background = this.Resources["glassy_bg_dark"] as LinearGradientBrush;
         }
 
         private void ArtistLabel_MouseLeave(object sender, MouseEventArgs e)
@@ -681,7 +708,7 @@ namespace Lyra
 
         private void InfoTextbox_MouseMove(object sender, MouseEventArgs e)
         {
-            InfoLabel.Background = this.Resources["glass_bg"] as LinearGradientBrush;
+            InfoLabel.Background = this.Resources["glassy_bg_dark"] as LinearGradientBrush;
         }
 
         private void InfoTextbox_MouseLeave(object sender, MouseEventArgs e)
@@ -747,6 +774,36 @@ namespace Lyra
             PauseButton.Opacity = .65;
         }
         #endregion
+
+        private void SongLabel_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            AdjustAlignment(SongLabel);
+        }
+
+        private void ArtistLabel_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            AdjustAlignment(ArtistLabel);
+        }
+
+        private void AdjustAlignment(Label sender)
+        {
+            HorizontalAlignment alignment = sender.HorizontalContentAlignment;
+            if (alignment == HorizontalAlignment.Left)
+            {
+                sender.HorizontalContentAlignment = HorizontalAlignment.Center;
+                sender.Padding = new Thickness(5, 5, 5, 5);
+            }
+            else if (alignment == HorizontalAlignment.Center)
+            {
+                sender.HorizontalContentAlignment = HorizontalAlignment.Right;
+                sender.Padding = new Thickness(5, 5, 30, 5);
+            }
+            else
+            {
+                sender.HorizontalContentAlignment = HorizontalAlignment.Left;
+                sender.Padding = new Thickness(30, 5, 5, 5);
+            }
+        }
     }
 
 }

@@ -42,16 +42,19 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Elysium, Version=2.0.976.4, Culture=neutral, PublicKeyToken=afa220db249e5b15, processorArchitecture=MSIL">
-      <Private>True</Private>
+      <Private>False</Private>
       <HintPath>..\packages\Elysium.Theme.2.0.4\lib\net40-client\Elysium.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.6.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\GitHub\Spotify-Ad-Blocker\EZBlocker\EZBlocker\bin\Debug\HtmlAgilityPack.dll</HintPath>
+      <HintPath>.\HtmlAgilityPack.dll</HintPath>
+      <Private>False</Private>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Newtonsoft.Json.6.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -139,16 +142,25 @@
     <None Include="Resources\Newtonsoft.Json.dll" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\HtmlAgilityPack.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="bin\Debug\HtmlAgilityPack.dll" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\Elysium.dll" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\blur_shade.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\Build\Elysium.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="HtmlAgilityPack.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\Build\HtmlAgilityPack.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\Build\Newtonsoft.Json.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\Debug\Build\nircmdc.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

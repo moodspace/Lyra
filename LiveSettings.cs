@@ -32,29 +32,33 @@ namespace Lyra
 
         internal static void ReadSettings()
         {
-            using (StreamReader sReader = new StreamReader(settingsFN))
+            try
             {
-                while (!sReader.EndOfStream)
+                using (StreamReader sReader = new StreamReader(settingsFN))
                 {
-                    String settingsLine = sReader.ReadLine();
+                    while (!sReader.EndOfStream)
+                    {
+                        String settingsLine = sReader.ReadLine();
 
-                    if (settingsLine.StartsWith("BL: "))
-                        blocklist.Add(settingsLine.Substring(4).Trim());
-                    else
-                        settingsLine = settingsLine.ToLower();
-                    //settings converted to lower
-                    if (settingsLine.StartsWith("show bubble"))
-                        notify = parseBool(settingsLine);
-                    if (settingsLine.StartsWith("close to tray"))
-                        closeTray = parseBool(settingsLine);
-                    if (settingsLine.StartsWith("autoblock"))
-                        autoAdd = parseBool(settingsLine);
-                    if (settingsLine.StartsWith("topmost"))
-                        topmost = parseBool(settingsLine);
+                        if (settingsLine.StartsWith("BL: "))
+                            blocklist.Add(settingsLine.Substring(4).Trim());
+                        else
+                            settingsLine = settingsLine.ToLower();
+                        //settings converted to lower
+                        if (settingsLine.StartsWith("show bubble"))
+                            notify = parseBool(settingsLine);
+                        if (settingsLine.StartsWith("close to tray"))
+                            closeTray = parseBool(settingsLine);
+                        if (settingsLine.StartsWith("autoblock"))
+                            autoAdd = parseBool(settingsLine);
+                        if (settingsLine.StartsWith("topmost"))
+                            topmost = parseBool(settingsLine);
+                    }
+
+                    sReader.Close();
                 }
-
-                sReader.Close();
             }
+            catch { }
         }
 
         internal static void WriteSettings()
