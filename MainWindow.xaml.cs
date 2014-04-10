@@ -82,7 +82,7 @@ namespace Lyra
             {
                 // Ignore
             }
-            setVolume(volume.u0nmuted); // Unmute Spotify, if muted
+            setVolume(Volume.u0nmuted); // Unmute Spotify, if muted
         }
 
         private void WriteImageResource(String filename, System.Drawing.Bitmap png_res, String subfolder)
@@ -156,9 +156,9 @@ namespace Lyra
         private void MainTimer_Tick(object sender, EventArgs e)
         {
              SpotifyStates states = AcquireSpotifyStates();
-
-             if (!states.IsPlaying)
+             if (states == null || !states.IsPlaying)
                 return;
+
             Artist currentArtist = ConvertToArtist(states.ArtistName);
             string musicTitle = states.MusicTitle;
 
@@ -203,7 +203,7 @@ namespace Lyra
 
         private void Unmute()
         {
-            setVolume(volume.u0nmuted); // Unmute Spotify
+            setVolume(Volume.u0nmuted); // Unmute Spotify
             MuteButton.Content = "Mute";
         }
 
@@ -230,17 +230,17 @@ namespace Lyra
 
         private void Mute()
         {
-            setVolume(volume.m1uted); // Mute Spotify
+            setVolume(Volume.m1uted); // Mute Spotify
             MuteButton.Content = "Muted";
         }
 
         // Keep playing ad, however in muted mode
         private void ResumeTimer_Tick(object sender, EventArgs e)
         {
-            AcquireSpotifyStates();
+            SpotifyStates states = AcquireSpotifyStates();
             // Spotify stops playing ad when you mute it --> why we need special handling
             // However it does not stop playing music when you mute it
-            if (!AcquireSpotifyStates().IsPlaying)
+            if (states != null && !AcquireSpotifyStates().IsPlaying)
                 ControlSpotify("playpause"); // Keep playing   
         }
 
@@ -259,6 +259,8 @@ namespace Lyra
                     hex = 0xa0000; break;
                 case "voldown":
                     hex = 0x90000; break;
+                case "mute":
+                    hex = 0x80000; break;
             }
             SendMessage(GetSpotifyHandle(), WM_APPCOMMAND, GetSpotifyHandle(), (IntPtr)hex);
         }
@@ -279,11 +281,6 @@ namespace Lyra
          **/
         private SpotifyStates AcquireSpotifyStates()
         {
-
-            //    if (spotify_titlebar_text.Contains("-"))
-            //        
-            //    else
-            //       
             SpotifyStates states = null;
             foreach (Process t in Process.GetProcesses())
                 if (t.ProcessName.Equals("spotify"))
@@ -468,14 +465,14 @@ namespace Lyra
          * 
          * i: 0 = unmute, 1 = mute, 2 = toggle
          **/
-        enum volume
+        enum Volume
         {
             u0nmuted = 0,
             m1uted = 1,
-            t2oggle_muted = 2
+            t2oggle_mute = 2
         };
 
-        private void setVolume(volume Volume)
+        private void setVolume(Volume volume)
         {
             try
             {
@@ -483,7 +480,7 @@ namespace Lyra
                 System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
                 startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
                 startInfo.FileName = "cmd.exe";
-                startInfo.Arguments = "/C nircmdc muteappvolume spotify.exe " + Volume.ToString().Substring(1, 1);
+                startInfo.Arguments = "/C nircmdc muteappvolume spotify.exe " + volume.ToString().Substring(1, 1);
                 process.StartInfo = startInfo;
                 process.Start();
             }
@@ -552,8 +549,9 @@ namespace Lyra
                 HtmlAgilityPack.HtmlNode bodyNode = doc.DocumentNode.SelectSingleNode("//body");
                 HtmlAgilityPack.HtmlNode divContentNode = bodyNode.SelectSingleNode("//div[@id='mw-mf-viewport']/div[@id='mw-mf-page-center']/div[@id='content_wrapper']/div[@id='content']/div/p");
                 String removeSpaces = Regex.Replace(divContentNode.InnerText, @"\s", " ");
-                String removeRef = Regex.Replace(removeSpaces, @"\[[0-9]\]", "");
-                String replaceAmp = removeRef.Replace("&amp;", "&");
+                String removeRef = Regex.Replace(removeSpaces, "[[0-9]+]", "");
+                String removeBrac = Regex.Replace(removeRef, @"[\s]\([\s\S]*?\)", "");
+                String replaceAmp = removeBrac.Replace("&amp;", "&");
                 if (replaceAmp.Contains("refer to:"))
                     throw new Exception("Invalid info");
                 else
@@ -633,7 +631,11 @@ namespace Lyra
 
         private void blockButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Artist artist = ConvertToArtist(AcquireSpotifyStates().ArtistName);
+            SpotifyStates states = AcquireSpotifyStates();
+            if (states == null)
+                return;
+
+            Artist artist = ConvertToArtist(states.ArtistName);
             if (artist == null)
                 return;
 
@@ -831,8 +833,12 @@ namespace Lyra
 
         private void externalLink_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            SpotifyStates states = AcquireSpotifyStates();
+            if (states == null)
+                return;
+
             String url = "http://itunes.apple.com/search?entity=musicArtist&limit=20&term=";
-            url += FormEncode(AcquireSpotifyStates().ArtistName);
+            url += FormEncode(states.ArtistName);
             String json = GetHTML(url, UA_mobile);
             ITunesAnswer res = JsonConvert.DeserializeObject<ITunesAnswer>(json);
             ITunesArtist artist = res.results[0];
