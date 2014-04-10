@@ -21,14 +21,16 @@ namespace Lyra
         //paths
         static internal String baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
         static internal String settingsFN = "settings.ini";
-        static internal String artistCollectionFN = "artists.db";
+        static internal String artistDatabaseFN = "artists.db";
         static internal String nircmdFN = "nircmdc.exe";
         static internal String jsonFN = "Newtonsoft.Json.dll";
         static internal String agilityPackFN = "HtmlAgilityPack.dll";
         static internal String elysiumFN = "Elysium.dll";
 
-        //block-list
-        static internal List<String> blocklist = new List<String>();
+        //blacklist
+        static internal List<String> blacklist = new List<String>();
+        //whitelist
+        static internal List<String> whitelist = new List<String>();
 
         internal static void ReadSettings()
         {
@@ -41,18 +43,14 @@ namespace Lyra
                         String settingsLine = sReader.ReadLine();
 
                         if (settingsLine.StartsWith("BL: "))
-                            blocklist.Add(settingsLine.Substring(4).Trim());
+                            blacklist.Add(settingsLine.Substring(4).Trim());
+                        else if (settingsLine.StartsWith("WL: "))
+                            whitelist.Add(settingsLine.Substring(4).Trim());
                         else
                             settingsLine = settingsLine.ToLower();
                         //settings converted to lower
-                        if (settingsLine.StartsWith("show bubble"))
-                            notify = parseBool(settingsLine);
-                        if (settingsLine.StartsWith("close to tray"))
-                            closeTray = parseBool(settingsLine);
                         if (settingsLine.StartsWith("autoblock"))
                             autoAdd = parseBool(settingsLine);
-                        if (settingsLine.StartsWith("topmost"))
-                            topmost = parseBool(settingsLine);
                     }
 
                     sReader.Close();
@@ -65,13 +63,12 @@ namespace Lyra
         {
             //will overwrite
             StreamWriter sWriter = new StreamWriter(settingsFN, false, new UnicodeEncoding());
-            sWriter.WriteLine(outputBoolSetting("show bubble", notify));
-            sWriter.WriteLine(outputBoolSetting("close to tray", closeTray));
             sWriter.WriteLine(outputBoolSetting("autoblock", autoAdd));
-            sWriter.WriteLine(outputBoolSetting("topmost", topmost));
 
-            foreach (String entry in blocklist)
+            foreach (String entry in blacklist)
                 sWriter.WriteLine("BL: " + entry);
+            foreach (String entry in whitelist)
+                sWriter.WriteLine("WL: " + entry);
 
             sWriter.Close();
         }
@@ -79,7 +76,7 @@ namespace Lyra
         //Precondition: true and false are presented in lowercase
         private static bool parseBool(String str)
         {
-            return (str.EndsWith("true"));
+            return str.EndsWith("true");
         }
 
         private static String outputBoolSetting(String settingName, bool settingVal)

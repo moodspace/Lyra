@@ -5,7 +5,7 @@
         xmlns:params="http://schemas.codeplex.com/elysium/params"
         xmlns:properties="clr-namespace:Lyra.Properties"
         params:Design.Theme="Light"
-        Title="Lyra" Height="345" Width="480" Loaded="Main_Loaded" Closing="Window_Closing"
+        Title="Lyra" Height="401" Width="480" Loaded="Main_Loaded" Closing="Window_Closing"
         Foreground="White" params:Manager.Theme="Dark" metro:Window.IsMainWindow="False" MinHeight="345" MinWidth="480" MaxWidth="1280" MaxHeight="720" HorizontalContentAlignment="Center">
     <Window.Resources>
         <Color x:Key="blue-button-border">#FF2A8BCC</Color>
@@ -48,20 +48,21 @@
             <Image x:Name="artistImageBox" Margin="10,30,10,20"/>
         </Grid>
         <Grid x:Name="GridInfos">
-            <Button x:Name="BlockButton" Content="Block" Margin="160,10,160,0" FontWeight="SemiBold" Click="BlockButton_Click" FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" Width="152" Background="#FFC53D2F" VerticalAlignment="Top" Height="28"/>
-            <Label x:Name="SongLabel" Content="■■■■■■■" VerticalAlignment="Top" Margin="10,43,10,0" HorizontalContentAlignment="Center" Height="44" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="SongLabel_MouseMove" MouseLeave="SongLabel_MouseLeave" VerticalContentAlignment="Center" Cursor="Hand" MouseDoubleClick="SongLabel_MouseDoubleClick"/>
-            <Label x:Name="ArtistLabel" Content="■■■" VerticalAlignment="Top" Margin="10,87,10,0" HorizontalContentAlignment="Center" Height="39" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="ArtistLabel_MouseMove" MouseLeave="ArtistLabel_MouseLeave" VerticalContentAlignment="Center" Cursor="Hand" MouseDoubleClick="ArtistLabel_MouseDoubleClick"/>
+            <Button x:Name="blockButton" Content="Block" Margin="160,10,160,0" FontWeight="SemiBold" Click="blockButton_Click" FontSize="12" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" Width="152" Background="#FFC53D2F" VerticalAlignment="Top" Height="28"/>
             <TextBlock x:Name="InfoLabel" Margin="10,0,10,35" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextAlignment="Justify" Padding="5" Text="■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" VerticalAlignment="Bottom"/>
             <Button x:Name="PauseButton" Content="Pause" Margin="0,10,85,0" Width="36" FontWeight="SemiBold" Click="PauseButton_Click" FontSize="12" HorizontalAlignment="Right" Height="28" VerticalAlignment="Top" Opacity="0.65" Background="#FF2F88C5" MouseMove="PauseButton_MouseMove" MouseLeave="PauseButton_MouseLeave"/>
             <Button x:Name="MuteButton" Content="Mute" Margin="85,10,0,0" FontWeight="SemiBold" Click="MuteButton_Click" FontSize="12" HorizontalAlignment="Left" Width="70" Height="28" VerticalAlignment="Top" Opacity="0.65" Background="#FF2F88C5" MouseMove="MuteButton_MouseMove" MouseLeave="MuteButton_MouseLeave"/>
-            <Button x:Name="NextSongButton" Content="Next" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" Width="19" FontWeight="SemiBold" Click="NextSongButton_Click" FontSize="12" HorizontalAlignment="Right" Opacity="0.65" Background="#FF2F88C5" MouseMove="NextSongButton_MouseMove" MouseLeave="NextSongButton_MouseLeave"/>
-            <Button x:Name="LastSongButton" Content="Previous" VerticalAlignment="Top" Margin="10,10,0,0" Height="28" HorizontalAlignment="Left" Width="29" FontWeight="SemiBold" Click="LastSongButton_Click" FontSize="12" Opacity="0.65" MouseMove="LastSongButton_MouseMove" MouseLeave="LastSongButton_MouseLeave" Background="#FF2F88C5"/>
+            <Button x:Name="NextMusicButton" Content="Next" VerticalAlignment="Top" Margin="0,10,10,0" Height="28" Width="19" FontWeight="SemiBold" Click="NextMusicButton_Click" FontSize="12" HorizontalAlignment="Right" Opacity="0.65" Background="#FF2F88C5" MouseMove="NextMusicButton_MouseMove" MouseLeave="NextMusicButton_MouseLeave"/>
+            <Button x:Name="LastMusicButton" Content="Previous" VerticalAlignment="Top" Margin="10,10,0,0" Height="28" HorizontalAlignment="Left" Width="29" FontWeight="SemiBold" Click="LastMusicButton_Click" FontSize="12" Opacity="0.65" MouseMove="LastMusicButton_MouseMove" MouseLeave="LastMusicButton_MouseLeave" Background="#FF2F88C5"/>
             <TextBox x:Name="InfoTextbox" TextWrapping="Wrap" Margin="10,0,10,35" TextAlignment="Justify" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" Opacity="0" MouseDoubleClick="InfoTextbox_MouseDoubleClick" KeyDown="InfoTextbox_KeyDown" KeyUp="InfoTextbox_KeyUp" MouseMove="InfoTextbox_MouseMove" MouseLeave="InfoTextbox_MouseLeave" Background="White" VerticalAlignment="Bottom">
                 <TextBox.Foreground>
                     <SolidColorBrush Color="#FF222326"/>
                 </TextBox.Foreground>
             </TextBox>
             <CheckBox x:Name="AutoAddCheckbox" Content="Automatically block new ads" Margin="10,0,0,10" FontWeight="SemiBold" Foreground="White" Checked="AutoAddCheckbox_Checked" FontSize="12" Height="16" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="208" Effect="{DynamicResource dropshadow_whitetext}"/>
+            <Label x:Name="ArtistLabel" Content="■■■" VerticalAlignment="Top" Margin="10,101,10,0" HorizontalContentAlignment="Center" Height="39" FontSize="16" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="ArtistLabel_MouseMove" MouseLeave="ArtistLabel_MouseLeave" VerticalContentAlignment="Center" Cursor="Hand" MouseDoubleClick="ArtistLabel_MouseDoubleClick"/>
+            <Label x:Name="MusicLabel" Content="■■■■■■■" VerticalAlignment="Top" Margin="10,43,10,0" HorizontalContentAlignment="Center" Height="58" FontSize="24" Foreground="White" Effect="{DynamicResource dropshadow_whitetext}" TextOptions.TextHintingMode="Animated" MouseMove="MusicLabel_MouseMove" MouseLeave="MusicLabel_MouseLeave" VerticalContentAlignment="Center" Cursor="Hand" MouseDoubleClick="MusicLabel_MouseDoubleClick"/>
+            <Image x:Name="externalButton" Height="16" VerticalAlignment="Top" Margin="0,43,10,0" RenderTransformOrigin="-1.188,0.562" MouseUp="externalLink_MouseUp" Effect="{DynamicResource dropshadow_whitetext}" HorizontalAlignment="Right" Width="16" ToolTip="View the artist on iTunes"/>
         </Grid>
     </Grid>
 </metro:Window>

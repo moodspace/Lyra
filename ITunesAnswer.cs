@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Lyra
 {
-    public class Result
+    public class ITunesArtist
     {
         public int artistId;
         public string artistLinkUrl;
@@ -19,6 +19,6 @@ namespace Lyra
     public class ITunesAnswer
     {
         public int resultCount;
-        public IList<Result> results;
+        public IList<ITunesArtist> results;
     }
 }
