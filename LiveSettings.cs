@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Text;
-
+using System.Windows.Media;
 namespace Lyra
 {
     class LiveSettings
@@ -12,12 +12,12 @@ namespace Lyra
         //and serve the major way to provide real-time R/W of
         //settings, it writes settings to My.Settings at exit.
 
-        //behaviors
-        static internal bool notify = true;
-        static internal bool closeTray = true;
         //main form
         static internal bool autoAdd = true;
-        static internal bool topmost = true;
+        static internal Color bgColor = (Color)ColorConverter.ConvertFromString("#FF18191B");
+        static internal Color secondColor = (Color)ColorConverter.ConvertFromString("#FF34353A");
+        static internal Color foreColor = Color.FromRgb(255, 255, 255); 
+
         //paths
         static internal String baseDir = System.AppDomain.CurrentDomain.BaseDirectory;
         static internal String settingsFN = "settings.ini";
@@ -42,15 +42,21 @@ namespace Lyra
                     {
                         String settingsLine = sReader.ReadLine();
 
-                        if (settingsLine.StartsWith("BL: "))
-                            blacklist.Add(settingsLine.Substring(4).Trim());
-                        else if (settingsLine.StartsWith("WL: "))
-                            whitelist.Add(settingsLine.Substring(4).Trim());
-                        else
-                            settingsLine = settingsLine.ToLower();
-                        //settings converted to lower
                         if (settingsLine.StartsWith("autoblock"))
-                            autoAdd = parseBool(settingsLine);
+                            autoAdd = StringToBool(settingsLine);
+                        else if (settingsLine.StartsWith("bgcolor"))
+                            bgColor = StringToColor(settingsLine);
+                        else if (settingsLine.StartsWith("secondcolor"))
+                            secondColor = StringToColor(settingsLine);
+                        else if (settingsLine.StartsWith("forecolor"))
+                            foreColor = StringToColor(settingsLine);
+                        else
+                        {
+                            if (settingsLine.ToLower().StartsWith("bl: "))
+                                blacklist.Add(settingsLine.Substring(4).Trim());
+                            else if (settingsLine.ToLower().StartsWith("wl: "))
+                                whitelist.Add(settingsLine.Substring(4).Trim());
+                        }
                     }
 
                     sReader.Close();
@@ -64,6 +70,9 @@ namespace Lyra
             //will overwrite
             StreamWriter sWriter = new StreamWriter(settingsFN, false, new UnicodeEncoding());
             sWriter.WriteLine(outputBoolSetting("autoblock", autoAdd));
+            sWriter.WriteLine(outputStringSetting("bgcolor", bgColor.ToString()));
+            sWriter.WriteLine(outputStringSetting("secondcolor", secondColor.ToString()));
+            sWriter.WriteLine(outputStringSetting("forecolor", foreColor.ToString()));
 
             foreach (String entry in blacklist)
                 sWriter.WriteLine("BL: " + entry);
@@ -74,14 +83,26 @@ namespace Lyra
         }
 
         //Precondition: true and false are presented in lowercase
-        private static bool parseBool(String str)
+        private static bool StringToBool(String str)
         {
-            return str.EndsWith("true");
+            return str.EndsWith("True");
+        }
+
+        private static Color StringToColor(String str)
+        {
+            str = str.Trim();
+            return (Color)ColorConverter.ConvertFromString(str.Substring(str.IndexOf("#")));
         }
 
         private static String outputBoolSetting(String settingName, bool settingVal)
         {
             return settingName + " := " + settingVal.ToString();
         }
+
+        private static String outputStringSetting(String settingName, String settingVal)
+        {
+            return settingName + " := " + settingVal;
+        }
+
     }
 }

@@ -64,15 +64,19 @@ namespace Lyra
             }
             catch { }
 
-            SetIsMainWindow(this, true);
-
+            ReadArtistDatabase();
             // Read settings
             LiveSettings.ReadSettings();
-            ReadArtistDatabase();
-            //this.CloseToolStripMenuItem.IsChecked = LiveSettings.closeTray;
             this.AutoAddCheckbox.IsChecked = LiveSettings.autoAdd;
-            //this.TopMostCheckbox.IsChecked = LiveSettings.topmost;
+            this.Background = new SolidColorBrush(LiveSettings.bgColor);
+            Elysium.Parameters.Manager.SetAccentBrush(this, new SolidColorBrush(LiveSettings.secondColor));
+            Elysium.Manager.Apply(Application.Current, Elysium.Theme.Dark,
+                new SolidColorBrush(LiveSettings.bgColor), new SolidColorBrush(LiveSettings.foreColor));
+            InfoLabel.Foreground = MusicLabel.Foreground = ArtistLabel.Foreground = 
+                this.Foreground = AutoAddCheckbox.Foreground = new SolidColorBrush(LiveSettings.foreColor);
+            SetIsMainWindow(this, true);
 
+            // Launch Spotify
             try
             {
                 System.Diagnostics.Process.GetCurrentProcess().PriorityClass = System.Diagnostics.ProcessPriorityClass.High; // Windows throttles down when minimized to task tray, so make sure EZBlocker runs smoothly
@@ -223,7 +227,9 @@ namespace Lyra
                 LiveSettings.blacklist.Remove(artist.GetName());
             blockButton.Content = blockButton.Content.ToString().Replace("Unblock", "Block");
             // Also needs to update whitelist
-            LiveSettings.whitelist.Add(artist.GetName());
+            if (!LiveSettings.whitelist.Contains(artist.GetName()))
+                LiveSettings.whitelist.Add(artist.GetName());
+
             if (!enforcingMute)
                 Unmute();
         }
@@ -339,7 +345,7 @@ namespace Lyra
                 if (a.Equals(artist))
                     return a;
             // artist not exist in saved db, create new and return
-            artist.UpdateBio(findDefine(artistName), false);
+            artist.UpdateBio(FindProfile(artistName), false);
             artistsList.Add(artist);
             return artist;
         }
@@ -487,17 +493,10 @@ namespace Lyra
             catch { }
         }
 
-        bool exitApp = true;
-
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             LiveSettings.WriteSettings();
             WriteArtistCollection();
-            if (LiveSettings.closeTray && !exitApp)
-            {
-                e.Cancel = true;
-                this.Hide();
-            }
         }
 
         private void WriteArtistCollection()
@@ -517,13 +516,7 @@ namespace Lyra
             sWriter.Close();
         }
 
-        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            exitApp = true;
-            this.Close();
-        }
-
-        private String findDefine(String artist)
+        private String FindProfile(String artist)
         {
             try
             {
@@ -593,11 +586,6 @@ namespace Lyra
             return @"http://upload.wikimedia.org/wikipedia/commons/5/52/Unknown.jpg";
         }
 
-        private void CloseToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
-        {
-            //LiveSettings.closeTray = CloseToolStripMenuItem.Checked;
-        }
-
         private void RemoveButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
             ListViewItem[] selected = new ListViewItem[BlockListBox.SelectedItems.Count];
@@ -660,7 +648,12 @@ namespace Lyra
          **/
         private void AutoAddCheckbox_Checked(object sender, System.Windows.RoutedEventArgs e)
         {
-            LiveSettings.autoAdd = AutoAddCheckbox.IsChecked.Value;
+            LiveSettings.autoAdd = true;
+        }
+
+        private void AutoAddCheckbox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            LiveSettings.autoAdd = false;
         }
 
         /** When enforcing mute, user can only unmute by clicking the mute button again
@@ -851,8 +844,7 @@ namespace Lyra
             }
             Process.Start(artist.artistLinkUrl);
         }
-
-        
+       
     }
 
 }
